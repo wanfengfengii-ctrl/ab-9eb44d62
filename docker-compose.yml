@@ -1,0 +1,40 @@
+name: schema-registry
+
+services:
+  api:
+    build:
+      context: .
+      target: runtime
+    image: schema-registry-api:local
+    environment:
+      PORT: "8080"
+      DATA_FILE: /data/registry.json
+    ports:
+      # Host port is configurable: HOST_PORT=9090 docker compose up -d api
+      - "${HOST_PORT:-8080}:8080"
+    volumes:
+      - schema-data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null \"http://127.0.0.1:$${PORT:-8080}/healthz\" || exit 1"]
+      interval: 2s
+      timeout: 2s
+      retries: 30
+      start_period: 5s
+    restart: unless-stopped
+
+  verify:
+    build:
+      context: .
+      target: verify
+    image: schema-registry-verify:local
+    depends_on:
+      api:
+        condition: service_healthy
+    environment:
+      # The verify binary also retries until the API is ready, so this
+      # works even when depends_on conditions are not honoured.
+      API_BASE_URL: http://api:8080
+    restart: "no"
+
+volumes:
+  schema-data:

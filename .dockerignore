@@ -1,0 +1,7 @@
+.git
+data/
+*.tmp
+.dockerignore
+docker-compose.yml
+README.md
+Makefile
