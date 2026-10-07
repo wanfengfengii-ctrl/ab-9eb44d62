@@ -1,0 +1,37 @@
+name: schema-registry
+
+services:
+  api:
+    build:
+      context: .
+      target: runtime
+    image: schema-registry-api:latest
+    environment:
+      PORT: "8080"
+      DATA_DIR: /data
+    ports:
+      # Host port is configurable: API_PORT=9000 docker compose up api
+      - "${API_PORT:-8080}:8080"
+    volumes:
+      - schema-data:/data
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8080/healthz"]
+      interval: 2s
+      timeout: 3s
+      retries: 20
+      start_period: 5s
+    restart: unless-stopped
+
+  verify:
+    build:
+      context: .
+      target: verify
+    image: schema-registry-verify:latest
+    depends_on:
+      api:
+        condition: service_healthy
+    environment:
+      API_ADDR: http://api:8080
+
+volumes:
+  schema-data:
